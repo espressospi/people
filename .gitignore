@@ -1,0 +1,10 @@
+node_modules/
+.pnpm-store/
+dist/
+.env
+.env.*
+!.env.example
+data/saves/*.json
+data/saves/*.tmp
+!data/saves/.gitkeep
+!data/saves/README.md

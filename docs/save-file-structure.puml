@@ -1,0 +1,68 @@
+@startuml
+title 피플 초기 테스트 세이브 파일 구조
+
+class GameSave {
+  version: number
+  updatedAt: datetime
+}
+
+class LocalPlayer {
+  id: string
+  loginType: local-test
+}
+
+class Person {
+  id: uuid
+  name: string
+  age: number
+  gender: string
+  appearance: string
+  mbti: string
+  policy: active | balanced | calm
+  job: string
+  money: number
+  health: number
+}
+
+class Stats {
+  talent: 1..20
+  effort: 0..20
+  charm: 1..20
+  ability: 1..20
+  experience: number
+  fame: 0..20
+}
+
+class Needs {
+  hunger: 0..100
+  fatigue: 0..100
+  stress: 0..100
+  loneliness: 0..100
+}
+
+class Home {
+  x: number
+  y: number
+}
+
+class World {
+  day: number
+  hour: 7..23
+}
+
+class ActionLog {
+  id: uuid
+  at: datetime
+  message: string
+  tone: string
+  roll: number?
+}
+
+GameSave *-- LocalPlayer
+GameSave *-- Person
+GameSave *-- World
+GameSave *-- "0..100" ActionLog
+Person *-- Stats
+Person *-- Needs
+Person *-- Home
+@enduml

@@ -38,6 +38,8 @@ const web = spawn(pnpmCommand, ['--filter', '@people/web', 'dev'], {
     VITE_GRAPHQL_URL: `http://127.0.0.1:${port}/graphql`,
   },
   stdio: 'inherit',
+  // Windows의 .cmd 실행 파일은 셸을 통해 실행해야 spawn EINVAL을 피할 수 있다.
+  shell: process.platform === 'win32',
 })
 
 console.log(`[dev] API가 ${port}번 포트를 사용합니다. 웹은 5173부터 빈 포트를 찾습니다.`)

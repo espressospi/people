@@ -19,7 +19,8 @@ function listenWithFallback(startPort) {
     const tryPort = (candidatePort) => {
       const onError = (error) => {
         server.removeListener('listening', onListening)
-        if (error.code === 'EADDRINUSE') {
+        // Windows에서는 예약되었거나 다른 프로세스가 점유한 포트가 EACCES로도 보고될 수 있다.
+        if (error.code === 'EADDRINUSE' || error.code === 'EACCES') {
           tryPort(candidatePort + 1)
           return
         }

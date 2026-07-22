@@ -6,11 +6,12 @@
 
 ## 이번 버전의 결정
 
-- 프론트엔드는 Vue 3와 Vite를 사용한다.
-- 백엔드는 Node의 HTTP 서버로 구성한다.
-- PostgreSQL, Prisma, GraphQL은 아직 사용하지 않는다.
+- 프론트엔드는 `apps/web`의 Vue 3와 Vite로 구성한다.
+- 백엔드는 `apps/api`의 Node와 GraphQL Yoga로 구성한다.
+- 웹과 백엔드는 독립 실행하며 웹은 `/graphql` API로만 게임 상태를 다룬다.
+- PostgreSQL과 Prisma는 아직 사용하지 않는다.
 - Google 로그인 대신 `local-player` 테스트 사용자를 사용한다.
-- 데이터는 `data/saves/local-player.json`에 UTF-8 JSON으로 저장한다.
+- 데이터는 `apps/api/data/saves/local-player.json`에 UTF-8 JSON으로 저장한다.
 - 행동 결과는 서버에서 계산하고 행동이 끝날 때마다 즉시 저장한다.
 - 저장 중 파일 손상을 줄이기 위해 임시 파일을 쓴 뒤 실제 세이브 파일로 교체한다.
 - 실제 세이브 JSON은 개인정보와 플레이 기록이 될 수 있으므로 Git에 커밋하지 않는다.
@@ -31,7 +32,7 @@
 ## 테스트 버전에서 미룬 범위
 
 - 소셜 로그인과 사용자 계정
-- PostgreSQL, Prisma 및 GraphQL
+- PostgreSQL 및 Prisma
 - 여러 사용자의 동시 플레이
 - 실제 피플 사이의 관계와 좌표 거리 계산
 - 결혼, 자녀, 상속, 질병과 사망
@@ -44,5 +45,5 @@
 - 사람 능력치는 `1~20`으로 제한하고 초월 단계는 별도 규칙이 생기기 전까지 자동으로 발생시키지 않는다.
 - 세이브 형식이 변경되면 `version`을 올리고 이전 세이브 변환 방법을 함께 작성한다.
 - 데이터 구조가 바뀌면 `docs/save-file-structure.puml`도 갱신한다.
-- PostgreSQL을 도입하는 시점에 JSON 세이브를 Prisma 모델로 옮기고 GraphQL API를 추가한다.
+- PostgreSQL을 도입하는 시점에 JSON 세이브를 Prisma 모델로 옮기되 기존 GraphQL 계약은 최대한 유지한다.
 - 기능을 추가할 때 이 문서와 `GAME_RULES.md`가 충돌하면 게임 규칙을 우선하고 차이를 기록한다.

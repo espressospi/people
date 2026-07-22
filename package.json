@@ -1,17 +1,14 @@
 {
-  "name": "people-game",
+  "name": "people-game-workspace",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node server/index.mjs",
-    "build": "vite build",
-    "start": "node server/index.mjs --production"
-  },
-  "dependencies": {
-    "@vitejs/plugin-vue": "latest",
-    "vite": "latest",
-    "vue": "latest"
+    "dev": "node scripts/dev.mjs",
+    "dev:web": "pnpm --filter @people/web dev",
+    "dev:api": "pnpm --filter @people/api dev",
+    "build": "pnpm --filter @people/web build",
+    "start": "pnpm --filter @people/api start"
   },
   "engines": {
     "node": ">=20"

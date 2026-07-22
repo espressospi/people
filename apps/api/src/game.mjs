@@ -1,10 +1,12 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT_DIR = join(dirname(fileURLToPath(import.meta.url)), '..')
 const SAVE_DIR = join(ROOT_DIR, 'data', 'saves')
-const SAVE_PATH = join(SAVE_DIR, 'local-player.json')
+const SAVE_PATH = process.env.SAVE_FILE_PATH
+  ? resolve(process.env.SAVE_FILE_PATH)
+  : join(SAVE_DIR, 'local-player.json')
 const MIN_STAT = 1
 const MAX_STAT = 20
 const MAX_LOGS = 100

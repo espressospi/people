@@ -1,0 +1,15 @@
+{
+  "name": "@people/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/server.mjs",
+    "start": "node src/server.mjs",
+    "check": "node --check src/server.mjs && node --check src/schema.mjs && node --check src/game.mjs"
+  },
+  "dependencies": {
+    "graphql": "^16.11.0",
+    "graphql-yoga": "latest"
+  }
+}

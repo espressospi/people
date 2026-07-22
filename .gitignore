@@ -4,7 +4,7 @@ dist/
 .env
 .env.*
 !.env.example
-data/saves/*.json
-data/saves/*.tmp
-!data/saves/.gitkeep
-!data/saves/README.md
+apps/api/data/saves/*.json
+apps/api/data/saves/*.tmp
+!apps/api/data/saves/.gitkeep
+!apps/api/data/saves/README.md

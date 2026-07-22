@@ -1,0 +1,26 @@
+@startuml
+title 피플 클라이언트와 GraphQL 백엔드
+
+package "Clients" {
+  component "Vue Web\napps/web" as Web
+  component "Mobile App\n(future)" as Mobile
+}
+
+package "Backend · apps/api" {
+  interface "/graphql" as GraphQL
+  component "GraphQL Schema\nQueries & Mutations" as Schema
+  component "Game Engine" as Engine
+  component "Save Repository" as Repository
+}
+
+database "JSON Save\ninitial test" as Json
+database "PostgreSQL\nfuture" as Postgres
+
+Web --> GraphQL
+Mobile ..> GraphQL
+GraphQL --> Schema
+Schema --> Engine
+Schema --> Repository
+Repository --> Json
+Repository ..> Postgres
+@enduml

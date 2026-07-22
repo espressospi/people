@@ -1,5 +1,13 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import {
+  advanceDay as advanceDayMutation,
+  advanceHour,
+  createNewGame,
+  fetchInitialGame,
+  performAction,
+  resetGame as resetGameMutation,
+} from './api/graphql.js'
 
 const game = ref(null)
 const actions = ref({})
@@ -51,22 +59,12 @@ const timeLabel = computed(() => {
 
 const avatarText = computed(() => game.value?.person.name?.slice(0, 1) || '피')
 
-async function request(url, options = {}) {
-  error.value = ''
-  const response = await fetch(url, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  })
-  const data = await response.json()
-  if (!response.ok) throw new Error(data.error || '요청을 처리하지 못했습니다.')
-  return data
-}
-
 async function loadGame() {
   try {
-    const data = await request('/api/game')
+    error.value = ''
+    const data = await fetchInitialGame()
     game.value = data.game
-    actions.value = data.actions
+    actions.value = Object.fromEntries(data.actions.map((action) => [action.key, action]))
   } catch (requestError) {
     error.value = requestError.message
   } finally {
@@ -81,12 +79,8 @@ async function createPerson() {
   }
   busy.value = true
   try {
-    const data = await request('/api/game', {
-      method: 'POST',
-      body: JSON.stringify(form),
-    })
-    game.value = data.game
-    actions.value = data.actions
+    error.value = ''
+    game.value = await createNewGame(form)
   } catch (requestError) {
     error.value = requestError.message
   } finally {
@@ -98,11 +92,8 @@ async function doAction(action) {
   if (busy.value) return
   busy.value = true
   try {
-    const data = await request('/api/game/action', {
-      method: 'POST',
-      body: JSON.stringify({ action }),
-    })
-    game.value = data.game
+    error.value = ''
+    game.value = await performAction(action)
   } catch (requestError) {
     error.value = requestError.message
     stopAutoPlay()
@@ -115,8 +106,8 @@ async function tick() {
   if (busy.value) return
   busy.value = true
   try {
-    const data = await request('/api/game/tick', { method: 'POST' })
-    game.value = data.game
+    error.value = ''
+    game.value = await advanceHour()
   } catch (requestError) {
     error.value = requestError.message
     stopAutoPlay()
@@ -130,8 +121,8 @@ async function advanceDay() {
   stopAutoPlay()
   busy.value = true
   try {
-    const data = await request('/api/game/day', { method: 'POST' })
-    game.value = data.game
+    error.value = ''
+    game.value = await advanceDayMutation()
   } catch (requestError) {
     error.value = requestError.message
   } finally {
@@ -156,7 +147,8 @@ async function resetGame() {
   stopAutoPlay()
   busy.value = true
   try {
-    await request('/api/game', { method: 'DELETE' })
+    error.value = ''
+    await resetGameMutation()
     game.value = null
   } catch (requestError) {
     error.value = requestError.message

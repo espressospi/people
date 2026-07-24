@@ -4,6 +4,7 @@ import {
   advanceDay as advanceDayMutation,
   advanceHour,
   createNewGame,
+  continueLife as continueLifeMutation,
   fetchInitialGame,
   performAction,
   resetGame as resetGameMutation,
@@ -44,6 +45,13 @@ const needCards = computed(() => {
   if (!game.value) return []
   const needs = game.value.person.needs
   return [
+    {
+      key: 'health',
+      label: '건강',
+      value: game.value.person.health,
+      hint: game.value.person.status === 'dead' ? '삶을 마쳤어요' : '30살 전후까지 자라요',
+      color: '#4c6655',
+    },
     { key: 'hunger', label: '배고픔', value: needs.hunger, hint: '낮을수록 든든해요', color: '#df7d55' },
     { key: 'fatigue', label: '피로', value: needs.fatigue, hint: '잠과 휴식이 필요해요', color: '#6e7db8' },
     { key: 'stress', label: '스트레스', value: needs.stress, hint: '마음의 여유를 살펴요', color: '#b26882' },
@@ -58,6 +66,7 @@ const timeLabel = computed(() => {
 })
 
 const avatarText = computed(() => game.value?.person.name?.slice(0, 1) || '피')
+const isDead = computed(() => game.value?.person.status === 'dead')
 
 async function loadGame() {
   try {
@@ -130,7 +139,21 @@ async function advanceDay() {
   }
 }
 
+async function continueLife(mode, childId = null) {
+  if (busy.value) return
+  busy.value = true
+  try {
+    error.value = ''
+    game.value = await continueLifeMutation(mode, childId)
+  } catch (requestError) {
+    error.value = requestError.message
+  } finally {
+    busy.value = false
+  }
+}
+
 function startAutoPlay() {
+  if (isDead.value) return
   autoPlaying.value = true
   tick()
   autoTimer = window.setInterval(tick, 5000)
@@ -306,7 +329,9 @@ onBeforeUnmount(stopAutoPlay)
         <section id="today" class="hero-card">
           <div class="avatar">{{ avatarText }}</div>
           <div class="hero-copy">
-            <span class="status-badge">{{ policyLabels[game.person.policy] }} 생활</span>
+            <span :class="['status-badge', { 'status-badge--dead': isDead }]">
+              {{ isDead ? '생을 마침' : `${policyLabels[game.person.policy]} 생활` }}
+            </span>
             <h1>{{ game.person.name }}의 {{ game.person.age }}번째 해</h1>
             <p>{{ game.person.appearance }} · {{ game.person.job }}</p>
           </div>
@@ -323,7 +348,7 @@ onBeforeUnmount(stopAutoPlay)
               <p class="eyebrow">CONDITION</p>
               <h2>오늘의 상태</h2>
             </div>
-            <span>건강 {{ game.person.health }}</span>
+            <span>건강 {{ game.person.health }} · {{ game.person.healthProfile.declineStartAge }}살부터 자연 감소</span>
           </div>
           <div class="condition-grid">
             <article v-for="need in needCards" :key="need.key" class="condition-card">
@@ -347,9 +372,20 @@ onBeforeUnmount(stopAutoPlay)
               <button v-if="!autoPlaying" class="auto-button" @click="startAutoPlay">▶ 자동 생활</button>
               <button v-else class="auto-button active" @click="stopAutoPlay">Ⅱ 잠시 멈춤</button>
             </div>
+            <div v-if="isDead" class="dead-notice">
+              <strong>{{ game.person.name }}의 삶이 끝났습니다.</strong>
+              <span v-if="game.person.children.length">자녀를 선택해 가족의 삶을 이어갈 수 있습니다.</span>
+              <span v-else>자녀가 없어 새로운 피플을 다른 좌표에서 시작합니다.</span>
+              <div class="successor-actions">
+                <button v-for="child in game.person.children" :key="child.id" :disabled="busy" @click="continueLife('CHILD', child.id)">
+                  {{ child.name }}로 이어가기
+                </button>
+                <button :disabled="busy" @click="continueLife('NEW')">새로운 피플 시작</button>
+              </div>
+            </div>
             <p class="panel-help">자동 생활은 5초마다 게임 속 한 시간을 보내며 1~2개의 행동을 선택합니다.</p>
             <div class="action-grid">
-              <button v-for="(action, key) in actions" :key="key" :disabled="busy" @click="doAction(key)">
+              <button v-for="(action, key) in actions" :key="key" :disabled="busy || isDead" @click="doAction(key)">
                 <span>{{ action.icon }}</span>
                 <strong>{{ action.label }}</strong>
               </button>

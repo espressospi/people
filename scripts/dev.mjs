@@ -5,7 +5,7 @@ const pnpmCommand = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm'
 
 function startApi() {
   return new Promise((resolve, reject) => {
-    const api = spawn(process.execPath, ['apps/api/src/server.mjs'], {
+    const api = spawn(process.execPath, ['--watch', 'apps/api/src/server.mjs'], {
       env: baseEnvironment,
       stdio: ['ignore', 'pipe', 'pipe'],
     })

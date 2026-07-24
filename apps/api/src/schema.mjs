@@ -1,6 +1,7 @@
 import { createSchema } from 'graphql-yoga'
 import {
   ACTIONS,
+  continueLife,
   createGame,
   deleteGame,
   loadGame,
@@ -24,6 +25,11 @@ const typeDefs = /* GraphQL */ `
     ACTIVE
     BALANCED
     CALM
+  }
+
+  enum ContinuationMode {
+    CHILD
+    NEW
   }
 
   input CreateGameInput {
@@ -66,6 +72,22 @@ const typeDefs = /* GraphQL */ `
     loneliness: Int!
   }
 
+  type HealthProfile {
+    peakAge: Int!
+    declineStartAge: Int!
+    expectedLifespan: Int!
+  }
+
+  type Child {
+    id: ID!
+    name: String!
+    age: Int!
+    gender: String!
+    appearance: String!
+    mbti: String!
+    policy: String!
+  }
+
   type Person {
     id: ID!
     name: String!
@@ -76,10 +98,13 @@ const typeDefs = /* GraphQL */ `
     policy: String!
     job: String!
     money: Int!
+    status: String!
+    health: Int!
+    healthProfile: HealthProfile!
+    children: [Child!]!
     home: Home!
     stats: Stats!
     needs: Needs!
-    health: Int!
   }
 
   type World {
@@ -114,6 +139,7 @@ const typeDefs = /* GraphQL */ `
     performAction(action: ActionType!): GameSave!
     advanceHour: GameSave!
     advanceDay: GameSave!
+    continueLife(mode: ContinuationMode!, childId: ID): GameSave!
     resetGame: Boolean!
   }
 `
@@ -136,6 +162,11 @@ const resolvers = {
       saveGame(runManualAction(await requireGame(), action.toLowerCase())),
     advanceHour: async () => saveGame(runAutomaticHour(await requireGame())),
     advanceDay: async () => saveGame(runUntilNextDay(await requireGame())),
+    continueLife: async (_, { mode, childId }) => {
+      const previousGame = await requireGame()
+      if (previousGame.person.status !== 'dead') throw new Error('피플이 아직 살아 있습니다.')
+      return saveGame(continueLife(previousGame, mode.toLowerCase(), childId))
+    },
     resetGame: async () => {
       await deleteGame()
       return true

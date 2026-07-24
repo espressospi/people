@@ -33,6 +33,7 @@ apps/
 - `performAction(action)`: 지정한 행동을 실행하고 한 시간을 진행한다.
 - `advanceHour`: 자동 행동 1~2회를 실행하고 한 시간을 진행한다.
 - `advanceDay`: 남은 시간의 자동 행동을 실행하고 다음 날로 진행한다.
+- `continueLife(mode, childId)`: 사망 후 자녀 계승 또는 다른 좌표의 새 피플을 시작한다.
 - `resetGame`: 초기 테스트 세이브를 삭제한다.
 
 ## 이후 모바일 앱을 만들 때

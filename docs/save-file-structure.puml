@@ -21,7 +21,21 @@ class Person {
   policy: active | balanced | calm
   job: string
   money: number
+  status: alive | dead
   health: number
+}
+
+class HealthProfile {
+  peakAge: 30
+  declineStartAge: 30..40
+  expectedLifespan: 50..90
+}
+
+class Child {
+  id: uuid
+  name: string
+  age: number
+  mbti: string
 }
 
 class Stats {
@@ -65,4 +79,6 @@ GameSave *-- "0..100" ActionLog
 Person *-- Stats
 Person *-- Needs
 Person *-- Home
+Person *-- HealthProfile
+Person *-- "0..n" Child
 @enduml

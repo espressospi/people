@@ -10,6 +10,7 @@ const SAVE_PATH = process.env.SAVE_FILE_PATH
 const MIN_STAT = 1
 const MAX_STAT = 20
 const MAX_LOGS = 100
+const MAX_HEALTH = 100
 
 const ACTIONS = {
   eat: { label: '식사하기', icon: '🍚' },
@@ -23,6 +24,7 @@ const ACTIONS = {
 const clamp = (value, min = 0, max = 100) => Math.min(max, Math.max(min, value))
 const randomStat = () => Math.floor(Math.random() * 4) + 4
 const rollD20 = () => Math.floor(Math.random() * 20) + 1
+const randomBetween = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min
 
 function makeLog(message, tone = 'neutral', roll = null) {
   return {
@@ -45,6 +47,64 @@ function changeNeeds(person, changes) {
   }
 }
 
+function makeHealthProfile() {
+  return {
+    peakAge: 30,
+    declineStartAge: randomBetween(30, 40),
+    expectedLifespan: randomBetween(50, 90),
+  }
+}
+
+function ageHealth(person) {
+  const profile = person.healthProfile
+  if (person.age <= profile.peakAge) {
+    person.health = clamp(person.health + randomBetween(1, 2), 0, MAX_HEALTH)
+    return
+  }
+
+  if (person.age >= profile.declineStartAge) {
+    const yearsAfterDecline = person.age - profile.declineStartAge
+    const annualDecline = 1 + Math.floor(yearsAfterDecline / 12) + randomBetween(0, 1)
+    person.health = clamp(person.health - annualDecline, 0, MAX_HEALTH)
+  }
+}
+
+function shouldDieNaturally(person) {
+  if (person.age < 50) return false
+  if (person.health <= 0) return true
+
+  const yearsPastExpected = person.age - person.healthProfile.expectedLifespan
+  const ageRisk = yearsPastExpected >= 0
+    ? 0.22 + yearsPastExpected * 0.16
+    : Math.max(0, (person.age - 50) * 0.002)
+  const healthRisk = Math.max(0, 100 - person.health) * 0.001
+  return Math.random() < Math.min(0.98, ageRisk + healthRisk)
+}
+
+function markDead(game) {
+  if (game.person.status === 'dead') return
+  game.person.status = 'dead'
+  addLog(game, makeLog(`🕯️ ${game.person.name}의 삶이 조용히 끝났다.`, 'day'))
+}
+
+function migrateGame(game) {
+  const person = game?.person
+  if (!person) return game
+
+  person.status ??= 'alive'
+  person.health ??= 70
+  person.healthProfile ??= {
+    peakAge: 30,
+    declineStartAge: 35,
+    // 구버전 세이브는 기존 나이를 존중하면서 자연 수명 기준만 추가한다.
+    expectedLifespan: 70,
+  }
+  person.children ??= []
+  game.version = Math.max(game.version ?? 1, 2)
+  if (person.age >= person.healthProfile.expectedLifespan + 10) markDead(game)
+  return game
+}
+
 function actionRoll(person, difficulty = 12) {
   const roll = rollD20()
   const total = roll + Math.floor(person.stats.ability / 2)
@@ -58,6 +118,7 @@ function actionRoll(person, difficulty = 12) {
 
 function performAction(game, actionType) {
   const person = game.person
+  if (person.status === 'dead') throw new Error('이 피플의 삶은 이미 끝났습니다.')
   const action = ACTIONS[actionType]
   if (!action) throw new Error('알 수 없는 행동입니다.')
 
@@ -162,9 +223,16 @@ function passOneHour(game) {
   game.world.day += 1
   game.world.hour = 7
   game.person.age += 1
+  ageHealth(game.person)
+  if (shouldDieNaturally(game.person)) markDead(game)
   addLog(
     game,
-    makeLog(`🌅 새로운 하루가 밝았다. ${game.person.name}은(는) ${game.person.age}살이 되었다.`, 'day'),
+    makeLog(
+      game.person.status === 'dead'
+        ? `🌅 ${game.person.name}의 ${game.person.age}번째 해가 마지막 날이 되었다.`
+        : `🌅 새로운 하루가 밝았다. ${game.person.name}은(는) ${game.person.age}살이 되었다.`,
+      'day',
+    ),
   )
 }
 
@@ -173,7 +241,7 @@ export function createGame(input) {
   if (!name) throw new Error('피플의 이름을 입력해 주세요.')
 
   const game = {
-    version: 1,
+    version: 2,
     updatedAt: new Date().toISOString(),
     player: { id: 'local-player', loginType: 'local-test' },
     person: {
@@ -196,7 +264,10 @@ export function createGame(input) {
         fame: 0,
       },
       needs: { hunger: 18, fatigue: 12, stress: 8, loneliness: 16 },
-      health: 100,
+      status: 'alive',
+      health: randomBetween(68, 76),
+      healthProfile: makeHealthProfile(),
+      children: [],
     },
     world: { day: 1, hour: 7 },
     logs: [],
@@ -204,6 +275,40 @@ export function createGame(input) {
 
   addLog(game, makeLog(`🏠 ${name}의 첫 번째 아침이 시작되었다.`, 'day'))
   return game
+}
+
+export function continueLife(game, mode, childId = null) {
+  if (game.person.status !== 'dead') throw new Error('피플이 살아 있을 때는 다음 삶을 선택할 수 없습니다.')
+
+  const child = game.person.children.find((candidate) => candidate.id === childId)
+  if (mode === 'child' && !child) throw new Error('선택한 자녀를 찾을 수 없습니다.')
+
+  const successor = createGame({
+    name: child?.name ?? '새로운 피플',
+    gender: child?.gender ?? '미정',
+    appearance: child?.appearance ?? '새로운 삶의 인상',
+    mbti: child?.mbti ?? 'ISFP',
+    policy: child?.policy ?? 'balanced',
+  })
+  const previousHome = game.person.home
+  successor.person.home = child
+    ? { ...previousHome }
+    : { x: previousHome.x + randomBetween(-1, 1), y: previousHome.y + randomBetween(-1, 1) }
+  if (!child && successor.person.home.x === previousHome.x && successor.person.home.y === previousHome.y) {
+    successor.person.home.x += 1
+  }
+  successor.person.money = Math.floor((game.person.money ?? 0) * 0.3)
+  successor.person.stats.fame = Math.min(MAX_STAT, Math.floor((game.person.stats.fame ?? 0) * 0.3))
+  addLog(
+    successor,
+    makeLog(
+      child
+        ? `🌱 ${child.name}이(가) 가족의 삶을 이어받았다.`
+        : `🗺️ 새로운 피플이 (${successor.person.home.x}, ${successor.person.home.y})에서 삶을 시작했다.`,
+      'day',
+    ),
+  )
+  return successor
 }
 
 export function runManualAction(game, actionType) {
@@ -231,7 +336,7 @@ export function runUntilNextDay(game) {
 
 export async function loadGame() {
   try {
-    return JSON.parse(await readFile(SAVE_PATH, 'utf8'))
+    return migrateGame(JSON.parse(await readFile(SAVE_PATH, 'utf8')))
   } catch (error) {
     if (error.code === 'ENOENT') return null
     throw error

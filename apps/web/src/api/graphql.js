@@ -15,7 +15,10 @@ const GAME_FIELDS = /* GraphQL */ `
       policy
       job
       money
+      status
       health
+      healthProfile { peakAge declineStartAge expectedLifespan }
+      children { id name age gender appearance mbti policy }
       home { x y }
       stats { talent effort charm ability experience fame }
       needs { hunger fatigue stress loneliness }
@@ -88,6 +91,19 @@ export async function advanceDay() {
     mutation AdvanceDay { advanceDay { ...GameFields } }
   `)
   return data.advanceDay
+}
+
+export async function continueLife(mode, childId = null) {
+  const data = await execute(
+    `
+      ${GAME_FIELDS}
+      mutation ContinueLife($mode: ContinuationMode!, $childId: ID) {
+        continueLife(mode: $mode, childId: $childId) { ...GameFields }
+      }
+    `,
+    { mode, childId },
+  )
+  return data.continueLife
 }
 
 export async function resetGame() {
